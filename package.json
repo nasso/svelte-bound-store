@@ -4,6 +4,22 @@
   "license": "MIT",
   "author": "nasso",
   "description": "Monadic interface for Svelte stores",
+  "keywords": [
+    "svelte",
+    "svelte.js",
+    "sveltejs",
+    "svelte3",
+    "svelte-store",
+    "monad",
+    "monadic",
+    "store",
+    "state management",
+    "functional",
+    "functional programming",
+    "fp",
+    "bind",
+    "sequence"
+  ],
   "scripts": {
     "package": "svelte-package && publint",
     "prepublishOnly": "npm run package",
