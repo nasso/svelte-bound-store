@@ -518,7 +518,7 @@ describe("common patterns", () => {
     values.length = 0;
   });
 
-  it("kanban $do", () => {
+  it("kanban monadic", () => {
     /**
      * @typedef {{ id: string, name: string }} Task
      * @type {Map<string, import('svelte/store').Writable<Task>>}
