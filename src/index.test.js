@@ -1,5 +1,5 @@
 // @ts-check
-import { bind, sequence } from "$lib/index.js";
+import { bind, sequence } from "./index.js";
 import { derived, get, readable, writable } from "svelte/store";
 import { describe, it, expect } from "vitest";
 
