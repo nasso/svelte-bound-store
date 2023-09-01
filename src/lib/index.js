@@ -6,37 +6,15 @@
 import { derived } from "svelte/store";
 
 /**
- * @template A
- * @typedef {Readable<A> & {
- *  bind: <B>(f: ($a: A) => Readable<B>) => Chainable<B>,
- *  map: <B>(f: ($a: A) => B) => Chainable<B>,
- * }} Chainable<A>
- */
-
-/**
- *
- * @template T
- * @param {Readable<T>} s
- * @returns {Chainable<T>}
- */
-export function monadic(s) {
-  return {
-    subscribe: s.subscribe,
-    bind: (f) => bound(s, f),
-    map: (f) => monadic(derived(s, f)),
-  };
-}
-
-/**
  * Monadic bind for Svelte stores.
  *
  * @template A, B
  * @param {Readable<A>} a
  * @param {($a: A) => Readable<B>} f
- * @returns {Chainable<B>}
+ * @returns {Readable<B>}
  */
 export function bound(a, f) {
-  return monadic({
+  return {
     subscribe(listener) {
       /** @type {undefined | (() => void)} */
       let bUnsub;
@@ -51,7 +29,7 @@ export function bound(a, f) {
         bUnsub?.();
       };
     },
-  });
+  };
 }
 
 /**
@@ -59,8 +37,8 @@ export function bound(a, f) {
  *
  * @template T
  * @param {Readable<T>[]} stores
- * @returns {Chainable<T[]>}
+ * @returns {Readable<T[]>}
  */
 export function sequenced(stores) {
-  return monadic(derived(stores, (values) => values));
+  return derived(stores, (values) => values);
 }
