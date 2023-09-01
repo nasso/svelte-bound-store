@@ -207,13 +207,13 @@ describe("common patterns", () => {
                 derived(
                   // fetch tasks
                   sequence(column.tasks.map((id) => unwrap(tasks.get(id)))),
-                  (taskStates) => ({ ...column, tasks: taskStates })
-                )
-              )
+                  (taskStates) => ({ ...column, tasks: taskStates }),
+                ),
+              ),
             ),
-            ($columnStates) => ({ ...$kanban, columns: $columnStates })
-          )
-      )
+            ($columnStates) => ({ ...$kanban, columns: $columnStates }),
+          ),
+      ),
     );
 
     /** @type {BoardState[]} */
