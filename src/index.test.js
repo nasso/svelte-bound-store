@@ -1,5 +1,5 @@
 // @ts-check
-import { bind, sequence } from "./lib/index.js";
+import { bound, monadic, sequenced } from "./lib/index.js";
 import { derived, get, readable, writable } from "svelte/store";
 import { describe, it, expect } from "vitest";
 
@@ -36,7 +36,7 @@ describe("bind", () => {
     const index = writable(0);
     const counters = [counter(0), counter(0), counter(0)];
 
-    const value = bind(index, ($a) => {
+    const value = bound(index, ($a) => {
       return counters[$a];
     });
 
@@ -65,7 +65,7 @@ describe("bind", () => {
     const index = writable(0);
     const counters = [counter(0), counter(0), counter(0)];
 
-    const value = bind(index, ($a) => {
+    const value = bound(index, ($a) => {
       return counters[$a];
     });
 
@@ -97,7 +97,7 @@ describe("bind", () => {
 describe("sequence", () => {
   it("works with empty array", () => {
     /** @type {import('svelte/store').Readable<unknown[]>} */
-    const array = sequence([]);
+    const array = sequenced([]);
 
     /** @type {unknown[]} */
     const values = [];
@@ -110,7 +110,7 @@ describe("sequence", () => {
   });
 
   it("works with non-empty array", () => {
-    const array = sequence([readable(0), readable(1), readable(2)]);
+    const array = sequenced([readable(0), readable(1), readable(2)]);
     const values = get(array);
 
     expect(values).toEqual([0, 1, 2]);
@@ -118,7 +118,7 @@ describe("sequence", () => {
 
   it("subscribes to underlying stores", () => {
     const stores = [counter(0), counter(0), counter(0)];
-    const array = sequence(stores);
+    const array = sequenced(stores);
 
     /** @type {number[][]} */
     const values = [];
@@ -193,22 +193,391 @@ describe("common patterns", () => {
      * @typedef {{ name: string, columns: ColumnState[] }} BoardState
      * @type {import('svelte/store').Readable<BoardState>}
      */
-    const state = bind(kanban, ($kanban) =>
-      bind(
+    const state = bound(kanban, ($kanban) =>
+      bound(
         // fetch columns
-        sequence($kanban.columns.map((id) => unwrap(columns.get(id)))),
+        sequenced($kanban.columns.map((id) => unwrap(columns.get(id)))),
         ($columns) =>
           // replace column ids with column states
           derived(
             // fetch column states
-            sequence(
+            sequenced(
               $columns.map((column) =>
                 // replace task ids with task states
                 derived(
                   // fetch tasks
-                  sequence(column.tasks.map((id) => unwrap(tasks.get(id)))),
+                  sequenced(column.tasks.map((id) => unwrap(tasks.get(id)))),
                   (taskStates) => ({ ...column, tasks: taskStates }),
                 ),
+              ),
+            ),
+            ($columnStates) => ({ ...$kanban, columns: $columnStates }),
+          ),
+      ),
+    );
+
+    /** @type {BoardState[]} */
+    const values = [];
+
+    state.subscribe((v) => {
+      values.push(JSON.parse(JSON.stringify(v)));
+    });
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-1", name: "Task 1" },
+              { id: "task-2", name: "Task 2" },
+              { id: "task-3", name: "Task 3" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // rename board
+    kanban.update((board) => ({ ...board, name: "Kanban Board Test" }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-1", name: "Task 1" },
+              { id: "task-2", name: "Task 2" },
+              { id: "task-3", name: "Task 3" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // add task-0 to col-0
+    columns.get("col-0")?.update((column) => ({
+      ...column,
+      tasks: [...column.tasks, "task-0"],
+    }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-1", name: "Task 1" },
+              { id: "task-2", name: "Task 2" },
+              { id: "task-3", name: "Task 3" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // move task-1 to col-1
+    columns.get("col-0")?.update((column) => ({
+      ...column,
+      tasks: column.tasks.filter((id) => id !== "task-1"),
+    }));
+    columns.get("col-1")?.update((column) => ({
+      ...column,
+      tasks: [...column.tasks, "task-1"],
+    }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-2", name: "Task 2" },
+              { id: "task-3", name: "Task 3" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-2", name: "Task 2" },
+              { id: "task-3", name: "Task 3" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+              { id: "task-1", name: "Task 1" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // rename task-2
+    tasks.get("task-2")?.update((task) => ({ ...task, name: "Task two" }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-2", name: "Task two" },
+              { id: "task-3", name: "Task 3" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+              { id: "task-1", name: "Task 1" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // remove task-3
+    columns.get("col-0")?.update((column) => ({
+      ...column,
+      tasks: column.tasks.filter((id) => id !== "task-3"),
+    }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-2", name: "Task two" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-1",
+            tasks: [
+              { id: "task-4", name: "Task 4" },
+              { id: "task-5", name: "Task 5" },
+              { id: "task-6", name: "Task 6" },
+              { id: "task-1", name: "Task 1" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // remove col-1
+    kanban.update((board) => ({
+      ...board,
+      columns: board.columns.filter((id) => id !== "col-1"),
+    }));
+
+    expect(values).toEqual([
+      {
+        name: "Kanban Board Test",
+        columns: [
+          {
+            id: "col-0",
+            tasks: [
+              { id: "task-2", name: "Task two" },
+              { id: "task-0", name: "Task 0" },
+            ],
+          },
+          {
+            id: "col-2",
+            tasks: [
+              { id: "task-7", name: "Task 7" },
+              { id: "task-8", name: "Task 8" },
+              { id: "task-9", name: "Task 9" },
+            ],
+          },
+        ],
+      },
+    ]);
+    values.length = 0;
+
+    // clear tasks in col-1
+    columns.get("col-1")?.update((column) => ({ ...column, tasks: [] }));
+
+    expect(values).toEqual([]);
+    values.length = 0;
+  });
+
+  it("kanban $do", () => {
+    /**
+     * @typedef {{ id: string, name: string }} Task
+     * @type {Map<string, import('svelte/store').Writable<Task>>}
+     */
+    const tasks = new Map([
+      ["task-0", writable({ id: "task-0", name: "Task 0" })],
+      ["task-1", writable({ id: "task-1", name: "Task 1" })],
+      ["task-2", writable({ id: "task-2", name: "Task 2" })],
+      ["task-3", writable({ id: "task-3", name: "Task 3" })],
+      ["task-4", writable({ id: "task-4", name: "Task 4" })],
+      ["task-5", writable({ id: "task-5", name: "Task 5" })],
+      ["task-6", writable({ id: "task-6", name: "Task 6" })],
+      ["task-7", writable({ id: "task-7", name: "Task 7" })],
+      ["task-8", writable({ id: "task-8", name: "Task 8" })],
+      ["task-9", writable({ id: "task-9", name: "Task 9" })],
+    ]);
+
+    /**
+     * @typedef {{ id: string, tasks: string[] }} Column
+     * @type {Map<string, import('svelte/store').Writable<Column>>}
+     */
+    const columns = new Map([
+      [
+        "col-0",
+        writable({ id: "col-0", tasks: ["task-1", "task-2", "task-3"] }),
+      ],
+      [
+        "col-1",
+        writable({ id: "col-1", tasks: ["task-4", "task-5", "task-6"] }),
+      ],
+      [
+        "col-2",
+        writable({ id: "col-2", tasks: ["task-7", "task-8", "task-9"] }),
+      ],
+    ]);
+
+    /**
+     * @typedef {{ name: string, columns: string[] }} Board
+     * @type {import('svelte/store').Writable<Board>}
+     */
+    const kanban = writable({
+      name: "Kanban Board",
+      columns: ["col-0", "col-1", "col-2"],
+    });
+
+    /**
+     * @typedef {Task} TaskState
+     * @typedef {{ id: string, tasks: TaskState[] }} ColumnState
+     * @typedef {{ name: string, columns: ColumnState[] }} BoardState
+     * @type {import('svelte/store').Readable<BoardState>}
+     */
+    const state = monadic(kanban).bind(($kanban) =>
+      sequenced($kanban.columns.map((id) => unwrap(columns.get(id)))).bind(
+        ($columns) =>
+          derived(
+            $columns.map((column) =>
+              derived(
+                column.tasks.map((id) => unwrap(tasks.get(id))),
+                (taskStates) => ({ ...column, tasks: taskStates }),
               ),
             ),
             ($columnStates) => ({ ...$kanban, columns: $columnStates }),

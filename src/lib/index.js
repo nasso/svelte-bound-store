@@ -3,16 +3,40 @@
  * @typedef {import('svelte/store').Readable<T>} Readable<T>
  */
 
+import { derived } from "svelte/store";
+
+/**
+ * @template A
+ * @typedef {Readable<A> & {
+ *  bind: <B>(f: ($a: A) => Readable<B>) => Chainable<B>,
+ *  map: <B>(f: ($a: A) => B) => Chainable<B>,
+ * }} Chainable<A>
+ */
+
+/**
+ *
+ * @template T
+ * @param {Readable<T>} s
+ * @returns {Chainable<T>}
+ */
+export function monadic(s) {
+  return {
+    subscribe: s.subscribe,
+    bind: (f) => bound(s, f),
+    map: (f) => monadic(derived(s, f)),
+  };
+}
+
 /**
  * Monadic bind for Svelte stores.
  *
  * @template A, B
  * @param {Readable<A>} a
  * @param {($a: A) => Readable<B>} f
- * @returns {Readable<B>}
+ * @returns {Chainable<B>}
  */
-export function bind(a, f) {
-  return {
+export function bound(a, f) {
+  return monadic({
     subscribe(listener) {
       /** @type {undefined | (() => void)} */
       let bUnsub;
@@ -27,7 +51,7 @@ export function bind(a, f) {
         bUnsub?.();
       };
     },
-  };
+  });
 }
 
 /**
@@ -35,31 +59,8 @@ export function bind(a, f) {
  *
  * @template T
  * @param {Readable<T>[]} stores
- * @returns {Readable<T[]>}
+ * @returns {Chainable<T[]>}
  */
-export function sequence(stores) {
-  return {
-    subscribe(listener) {
-      /** @type {T[]} */
-      const values = new Array(stores.length);
-      let ready = false;
-
-      const unsubscribers = stores.map((store, i) => {
-        return store.subscribe(($value) => {
-          values[i] = $value;
-
-          if (ready) {
-            listener(values);
-          }
-        });
-      });
-
-      ready = true;
-      listener(values);
-
-      return () => {
-        unsubscribers.forEach((unsub) => unsub());
-      };
-    },
-  };
+export function sequenced(stores) {
+  return monadic(derived(stores, (values) => values));
 }
