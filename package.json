@@ -5,20 +5,17 @@
   "author": "nasso",
   "description": "Monadic interface for Svelte stores",
   "keywords": [
-    "svelte",
-    "svelte.js",
-    "sveltejs",
-    "svelte3",
-    "svelte-store",
+    "fp",
+    "functional programming",
     "monad",
     "monadic",
-    "store",
     "state management",
-    "functional",
-    "functional programming",
-    "fp",
-    "bind",
-    "sequence"
+    "store",
+    "svelte store",
+    "svelte.js",
+    "svelte",
+    "svelte3",
+    "sveltejs"
   ],
   "scripts": {
     "package": "svelte-package && publint",
