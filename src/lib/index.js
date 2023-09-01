@@ -2,26 +2,31 @@
  * @template T
  * @typedef {import('svelte/store').Readable<T>} Readable<T>
  */
+/**
+ * @template T
+ * @typedef {import('./private.js').StoresValues<T>} StoresValues<T>
+ */
 
 import { derived } from "svelte/store";
 
 /**
- * Monadic bind for Svelte stores.
+ * Monadic binding for Svelte stores.
  *
- * @template A, B
- * @param {Readable<A>} a
- * @param {($a: A) => Readable<B>} f
- * @returns {Readable<B>}
+ * @template {import('./private.js').Stores} S
+ * @template T
+ * @param {S} stores - input stores
+ * @param {(values: StoresValues<S>) => Readable<T>} f - function callback that returns a store
+ * @returns {Readable<T>}
  */
-export function bound(a, f) {
+export function bound(stores, f) {
   return {
     subscribe(listener) {
       /** @type {undefined | (() => void)} */
       let bUnsub;
 
-      const aUnsub = a.subscribe(($a) => {
+      const aUnsub = derived(stores, (x) => x).subscribe((values) => {
         bUnsub?.();
-        bUnsub = f($a).subscribe(listener);
+        bUnsub = f(values).subscribe(listener);
       });
 
       return () => {
@@ -30,15 +35,4 @@ export function bound(a, f) {
       };
     },
   };
-}
-
-/**
- * Transforms an array of stores into a store containing an array of values.
- *
- * @template T
- * @param {Readable<T>[]} stores
- * @returns {Readable<T[]>}
- */
-export function sequenced(stores) {
-  return derived(stores, (values) => values);
 }

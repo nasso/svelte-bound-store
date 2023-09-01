@@ -1,5 +1,5 @@
 // @ts-check
-import { bound, sequenced } from "./lib/index.js";
+import { bound } from "./lib/index.js";
 import { derived, get, readable, writable } from "svelte/store";
 import { describe, it, expect } from "vitest";
 
@@ -31,7 +31,7 @@ function unwrap(value) {
   }
 }
 
-describe("bind", () => {
+describe("bind single store", () => {
   it("subscribes and unsubscribes to underlying stores", () => {
     const index = writable(0);
     const counters = [counter(0), counter(0), counter(0)];
@@ -94,52 +94,6 @@ describe("bind", () => {
   });
 });
 
-describe("sequence", () => {
-  it("works with empty array", () => {
-    /** @type {import('svelte/store').Readable<unknown[]>} */
-    const array = sequenced([]);
-
-    /** @type {unknown[]} */
-    const values = [];
-
-    array.subscribe((v) => {
-      values.push(v);
-    });
-
-    expect(values).toEqual([[]]);
-  });
-
-  it("works with non-empty array", () => {
-    const array = sequenced([readable(0), readable(1), readable(2)]);
-    const values = get(array);
-
-    expect(values).toEqual([0, 1, 2]);
-  });
-
-  it("subscribes to underlying stores", () => {
-    const stores = [counter(0), counter(0), counter(0)];
-    const array = sequenced(stores);
-
-    /** @type {number[][]} */
-    const values = [];
-
-    array.subscribe((v) => {
-      values.push(v.slice());
-    });
-
-    stores[0].increment();
-    stores[1].increment();
-    stores[2].increment();
-
-    expect(values).toEqual([
-      [0, 0, 0],
-      [1, 0, 0],
-      [1, 1, 0],
-      [1, 1, 1],
-    ]);
-  });
-});
-
 describe("common patterns", () => {
   it("kanban", () => {
     /**
@@ -196,7 +150,7 @@ describe("common patterns", () => {
     const state = bound(kanban, ($kanban) =>
       bound(
         // fetch columns
-        sequenced($kanban.columns.map((id) => unwrap(columns.get(id)))),
+        $kanban.columns.map((id) => unwrap(columns.get(id))),
         ($columns) =>
           // replace column ids with column states
           derived(

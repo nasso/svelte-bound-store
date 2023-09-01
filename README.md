@@ -1,16 +1,12 @@
-# `svelte-store-monad`
+# `svelte-bound-store`
 
-Monadic interface for Svelte stores.
+`bound` is like `derived`, but the function returns another store.
 
 ## Usage
 
-### `bound`
-
-Like `derived`, but the function returns another store.
-
 ```js
 import { writable } from "svelte/store";
-import { bound } from "svelte-store-monad";
+import { bound } from "svelte-bound-store";
 
 const foo = writable("foo");
 const bar = writable("bar");
