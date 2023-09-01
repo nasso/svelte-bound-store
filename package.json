@@ -1,6 +1,9 @@
 {
   "name": "svelte-store-monad",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "license": "MIT",
+  "author": "nasso",
+  "description": "Monadic interface for Svelte stores",
   "scripts": {
     "package": "svelte-package && publint",
     "prepublishOnly": "npm run package",
