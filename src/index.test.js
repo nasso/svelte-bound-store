@@ -32,7 +32,7 @@ function unwrap(value) {
 }
 
 describe("bind single store", () => {
-  it("subscribes and unsubscribes to underlying stores", () => {
+  it("subscribes and unsubscribes from underlying stores", () => {
     const index = writable(0);
     const counters = [counter(0), counter(0), counter(0)];
 
@@ -91,6 +91,44 @@ describe("bind single store", () => {
     index.set(0); // no push
 
     expect(values).toEqual([0, 0, 1, 2]);
+  });
+});
+
+describe("bind multiple stores", () => {
+  it("subscribes and unsubscribes from underlying stores", () => {
+    const foo = [writable(0), writable(1), writable(2)];
+    const bar = [writable(3), writable(4), writable(5)];
+    const baz = [writable(foo), writable(bar)];
+
+    const foobar = bound(baz, ($baz) => {
+      return derived($baz.flat(), (x) => x);
+    });
+
+    /** @type {number[][]} */
+    const values = [];
+
+    // push [0, 1, 2, 3, 4, 5]
+    foobar.subscribe((v) => {
+      values.push(v.slice());
+    });
+
+    foo[0].set(10); // push [10, 1, 2, 3, 4, 5]
+    bar[0].set(11); // push [10, 1, 2, 11, 4, 5]
+    foo[1].set(12); // push [10, 12, 2, 11, 4, 5]
+
+    baz[0].set(bar); // push [11, 4, 5, 11, 4, 5]
+
+    bar[0].set(13); // push [13, 4, 5, 13, 4, 5]
+    foo[0].set(14); // push nothing (not subscribed to foo[0])
+
+    expect(values).toEqual([
+      [0, 1, 2, 3, 4, 5],
+      [10, 1, 2, 3, 4, 5],
+      [10, 1, 2, 11, 4, 5],
+      [10, 12, 2, 11, 4, 5],
+      [11, 4, 5, 11, 4, 5],
+      [13, 4, 5, 13, 4, 5],
+    ]);
   });
 });
 

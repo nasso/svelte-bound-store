@@ -5,6 +5,9 @@
   "author": "nasso",
   "description": "Monadic binding for Svelte stores",
   "keywords": [
+    "bound store",
+    "bound",
+    "derived store",
     "fp",
     "functional programming",
     "monad",
