@@ -1,12 +1,3 @@
-/**
- * @template T
- * @typedef {import('svelte/store').Readable<T>} Readable<T>
- */
-/**
- * @template T
- * @typedef {import('./private.js').StoresValues<T>} StoresValues<T>
- */
-
 import { derived } from "svelte/store";
 
 /**
@@ -15,8 +6,8 @@ import { derived } from "svelte/store";
  * @template {import('./private.js').Stores} S
  * @template T
  * @param {S} stores - input stores
- * @param {(values: StoresValues<S>) => Readable<T>} f - function callback that returns a store
- * @returns {Readable<T>}
+ * @param {(values: import('./private.js').StoresValues<S>) => import('svelte/store').Readable<T>} f - function callback that returns a store
+ * @returns {import('svelte/store').Readable<T>}
  */
 export function bound(stores, f) {
   return {
