@@ -1,9 +1,16 @@
 {
   "name": "svelte-bound-store",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "author": "nasso",
   "description": "Monadic binding for Svelte stores",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nasso/svelte-bound-store"
+  },
+  "bugs": {
+    "url": "https://github.com/nasso/svelte-bound-store/issues"
+  },
   "keywords": [
     "bound store",
     "bound",
